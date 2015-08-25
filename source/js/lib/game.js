@@ -1,6 +1,12 @@
 var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'bugbuster', { preload: preload, create: create, update: update });
 
-var emitter;
+var ship,
+    bullets,
+    bulletTime = 100,
+    bullet,
+    hitted = 0,
+    bugs,
+    cursors;
 
 function preload() {
     
@@ -10,19 +16,12 @@ function preload() {
     game.load.spritesheet('kaboom', 'img/explode.gif', 32, 32);
     game.load.image('starfield', 'img/starfield.gif');
     game.load.audio('bgmusic', 'sound/pantera.mp3');
+
 }
-
-var sprite;
-var bullets;
-var bugs;
-var cursors;
-
-var bulletTime = 100;
-var bullet;
 
 function create() {
 
-    bgmusic = game.sound.play('bgmusic');
+    //bgmusic = game.sound.play('bgmusic');
 
     starfield = game.add.tileSprite(0, 0, 800, 600, 'starfield');
     bugs = game.add.group();
@@ -56,16 +55,17 @@ function create() {
     }
 
     ship = game.add.sprite(400, 550, 'ship');
+    ship.velocity = 300;
     var ignite = ship.animations.add('ignite');
     ship.animations.play('ignite', 30, true);
-
+    ship.life = 100;
+    ship.hitted = 0;
     game.physics.enable(ship, Phaser.Physics.ARCADE);
 
     cursors = game.input.keyboard.createCursorKeys();
     game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
 
 }
-
 
 function setupBug (bug) {
 
@@ -78,22 +78,43 @@ function setupBug (bug) {
 function update() {
 
     game.physics.arcade.overlap(bullets, bugs, collisionHandler, null, this);
-    game.physics.arcade.overlap(bugs, ship, killShip, null, this);
+    game.physics.arcade.overlap(bugs, ship, hitShip, null, this);
+
     starfield.tilePosition.y += 3;
     ship.body.velocity.x = 0;
     ship.body.velocity.y = 0;
 
     if (cursors.left.isDown) {
-        ship.body.velocity.x = -400;
+        ship.body.velocity.x = ship.velocity * -1;
     }
     else if (cursors.right.isDown) {
-        ship.body.velocity.x = 400;
+        ship.body.velocity.x = ship.velocity;
+    }
+    if (cursors.up.isDown) {
+        ship.body.velocity.y = ship.velocity * -1;;
+    }
+    else if (cursors.down.isDown) {
+        ship.body.velocity.y = ship.velocity;
     }
 
     if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
         fireBullet();
     }
-
+    if (hitted > 0) {
+       var rand1 = game.rnd.integerInRange(-5,5);
+       var rand2 = game.rnd.integerInRange(-5,5);
+        game.world.setBounds(rand1, rand2, game.width + rand1, game.height + rand2);
+        if(hitted%2==0){
+            ship.tint = 0xff0000;
+        }else{
+            ship.tint = 0xffffff;
+        }
+        hitted--;
+        if (hitted == 0) {
+            ship.tint = 0xffffff;
+            game.world.setBounds(0, 0, game.width,game.height); // normalize after shake?
+        }
+    }
 }
 
 function fireBullet () {
@@ -116,15 +137,22 @@ function resetBullet (bullet) {
     bullet.kill();
 
 }
-function killShip (bug, ship) {
-    ship.kill();
-    bug.kill();
-    var explosion = explosions.getFirstExists(false);
-    explosion.reset(ship.body.x, ship.body.y);
-    explosion.play('kaboom', 30, false, true);
-}
-function collisionHandler (bullet, bug) {
+function hitShip (_ship, bug) {
+    ship.life -= 10;
 
+    console.log(ship.life);
+    bug.kill();
+
+    if(ship.life <= 0){
+        ship.kill();
+        var explosion = explosions.getFirstExists(false);
+        explosion.reset(_ship.body.x, _ship.body.y);
+        explosion.play('kaboom', 30, false, true);
+    }
+    hitted = 8;   
+}
+
+function collisionHandler (bullet, bug) {
     bullet.kill();
     bug.kill();
     var explosion = explosions.getFirstExists(false);
