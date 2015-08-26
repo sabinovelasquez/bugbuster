@@ -264,7 +264,7 @@ Bugbuster.Game.prototype = {
 		}
 		if (this.showReturn && this.time.now > this.showReturn) {
 			this.returnText = this.add.text(
-				this.game.width / 2, this.game.height / 2 + 20,
+				(this.game.width / 2) -.5, this.game.height / 2 + 20,
 				'Press SPACEBAR or Tap Game to go back to Main Menu',
 				Bugbuster.FONT_SETTINGS
 			);
@@ -411,7 +411,7 @@ Bugbuster.Game.prototype = {
 		});
 	},
 	setupText: function () {
-		this.instructions = this.add.text( this.game.width / 2, this.game.height - 100,
+		this.instructions = this.add.text( (this.game.width / 2) -.5, this.game.height - 100,
 			'Shoot `em down with SPACEBAR Motherfucker\n' + 
 			'(Tapping/clicking does both)',
 			Bugbuster.FONT_SETTINGS
@@ -439,7 +439,7 @@ Bugbuster.Game.prototype = {
 		}
 		var msg = win ? 'You Win!!!' : 'Fuck.';
 		this.endText = this.add.text( 
-			this.game.width / 2, this.game.height / 2 - 60, msg,
+			(this.game.width / 2) -.5, this.game.height / 2 - 60, msg,
 			{ font: '15px Monaco', fill: '#fff' }
 		);
 		this.endText.anchor.setTo(0.5, 0);
