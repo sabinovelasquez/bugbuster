@@ -53,110 +53,68 @@ Bugbuster.Game.prototype = {
 
 	create: function () {
 
-		this.hitted = 0;
+		this.setupBackground();
+		this.setupPlayer();
+		this.setupEnemies();
+		this.setupBullets();
+		this.setupExplosions();
+		this.setupText();
 
-		// player & bg
-
-		this.bg = this.add.tileSprite(0, 0, Bugbuster.width, Bugbuster.height, 'starfield');
-		this.ship = this.add.sprite(Bugbuster.width/2, Bugbuster.height-50, 'ship');
-		this.ship.animations.add('ignite');
-		this.ship.anchor.setTo(0.5, 0.5);
-		this.ship.play('ignite', 20, true);
-		this.physics.enable(this.ship, Phaser.Physics.ARCADE);
-		this.ship.speed = 300;
-		this.ship.body.collideWorldBounds = true;
-		this.ship.body.setSize(20, 20, 0, -5);
-
-		this.physics.enable(this.ship, Phaser.Physics.ARCADE);
-
-		//enemies
-
-		this.enemyPool = this.add.group();
-		this.enemyPool.enableBody = true;
-		this.enemyPool.physicsBodyType = Phaser.Physics.ARCADE;
-		this.enemyPool.createMultiple(50, 'bug');
-		this.enemyPool.setAll('anchor.x', 0.5);
-		this.enemyPool.setAll('anchor.y', 0.5);
-		this.enemyPool.setAll('outOfBoundsKill', true);
-		this.enemyPool.setAll('checkWorldBounds', true);
-		
-		// set the animation
-		this.enemyPool.forEach(function (enemy) {
-			enemy.animations.add('fly', [ 0, 1], 20, true);
-		});
-
-		this.nextEnemyAt = 0;
-		this.enemyDelay = 200;
-
-		//bullets
-
-		this.bulletPool = this.add.group();
-		this.bulletPool.enableBody = true;
-		this.bulletPool.physicsBodyType = Phaser.Physics.ARCADE;
-		this.bulletPool.createMultiple(100, 'bullet');
-		this.bulletPool.setAll('anchor.x', 0.5);
-	    this.bulletPool.setAll('anchor.y', 0.5);
-	    this.bulletPool.setAll('outOfBoundsKill', true);
-		this.bulletPool.setAll('checkWorldBounds', true);
-	    
-	    this.nextShotAt = 0;
-		this.shotDelay = 200;
-
-		this.explosionPool = this.add.group();
-		this.explosionPool.enableBody = true;
-		this.explosionPool.physicsBodyType = Phaser.Physics.ARCADE;
-		this.explosionPool.createMultiple(100, 'kaboom');
-		this.explosionPool.setAll('anchor.x', 0.5);
-		this.explosionPool.setAll('anchor.y', 0.5);
-		this.explosionPool.forEach(function (explosion) {
-			explosion.animations.add('boom');
-		});
-
-	this.cursors = this.input.keyboard.createCursorKeys();
-
+		this.cursors = this.input.keyboard.createCursorKeys();
 	},
-	update: function () {
-
-		this.bg.tilePosition.y += 3;
-		this.ship.body.velocity.x = 0;
-		this.ship.body.velocity.y = 0;
-
+	checkCollisions: function () {
 		this.physics.arcade.overlap(
 			this.bulletPool, this.enemyPool, this.enemyHit, null, this
 		);
+
 		this.physics.arcade.overlap(
 			this.ship, this.enemyPool, this.playerHit, null, this
 		);
-
+	},
+	spawnEnemies: function () {
 		if (this.nextEnemyAt < this.time.now && this.enemyPool.countDead() > 0) {
 			this.nextEnemyAt = this.time.now + this.enemyDelay;
 			var enemy = this.enemyPool.getFirstExists(false);
-			enemy.reset(this.rnd.integerInRange(20, Bugbuster.width), 0);
-			enemy.body.velocity.y = this.rnd.integerInRange(60, 90);
+			enemy.reset(this.rnd.integerInRange(20, this.game.width - 20), 0);
+			enemy.body.velocity.y = this.rnd.integerInRange(30, 60);
 			enemy.play('fly');
 		}
-
+	},
+	processPlayerInput: function () {
 		this.ship.body.velocity.x = 0;
 		this.ship.body.velocity.y = 0;
 
-		//game input
+		if (this.cursors.left.isDown) {
+			this.ship.body.velocity.x = -this.ship.speed;
+		} else if (this.cursors.right.isDown) {
+			this.ship.body.velocity.x = this.ship.speed;
+		}
+
+		if (this.cursors.up.isDown) {
+			this.ship.body.velocity.y = -this.ship.speed;
+		} else if (this.cursors.down.isDown) {
+			this.ship.body.velocity.y = this.ship.speed;
+		}
+
+		if (this.input.activePointer.isDown && this.physics.arcade.distanceToPointer(this.ship) > 15) {
+			this.physics.arcade.moveToPointer(this.ship, this.ship.speed);
+		}
 
 		if (this.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) || this.input.activePointer.isDown) {
 			this.fire();
 		}
-
-		if (this.cursors.left.isDown) {
-			this.ship.body.velocity.x = -this.ship.speed;
+	},
+	processDelayedEffects: function () {
+		if (this.instructions.exists && this.time.now > this.instExpire) {
+			this.instructions.destroy();
 		}
-		else if (this.cursors.right.isDown) {
-			this.ship.body.velocity.x = this.ship.speed;
-		}
-		if (this.cursors.up.isDown) {
-			this.ship.body.velocity.y = -this.ship.speed;
-		}
-		else if (this.cursors.down.isDown) {
-			this.ship.body.velocity.y = this.ship.speed;
-		}
+	},
+	update: function () {
+		
+		this.checkCollisions();
+		this.spawnEnemies();
+		this.processPlayerInput();
+		this.processDelayedEffects();
 
 		//shake it
 
@@ -215,6 +173,70 @@ Bugbuster.Game.prototype = {
 	},
 	render: function() {
 		// this.game.debug.body(this.ship);
+	},
+	setupBackground: function () {
+		this.bg = this.add.tileSprite(0, 0, this.game.width, this.game.height, 'starfield');
+		this.bg.autoScroll(0, 12);
+	},
+	setupPlayer: function () {
+		this.ship = this.add.sprite(this.game.width / 2, this.game.height - 50, 'ship');
+		this.ship.anchor.setTo(0.5, 0.5);
+		this.ship.animations.add('fly', [ 0, 1 ], 20, true);
+		this.ship.play('fly');
+		this.physics.enable(this.ship, Phaser.Physics.ARCADE);
+		this.ship.speed = 300;
+		this.ship.body.collideWorldBounds = true;
+		this.ship.body.setSize(20, 20, 0, -5);
+	},
+	setupEnemies: function () {
+		this.enemyPool = this.add.group();
+		this.enemyPool.enableBody = true;
+		this.enemyPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.enemyPool.createMultiple(50, 'bug');
+		this.enemyPool.setAll('anchor.x', 0.5);
+		this.enemyPool.setAll('anchor.y', 0.5);
+		this.enemyPool.setAll('outOfBoundsKill', true);
+		this.enemyPool.setAll('checkWorldBounds', true);
+		this.enemyPool.forEach(function (enemy) {
+			enemy.animations.add('fly', [ 0, 1 ], 20, true);
+		});
+
+		this.nextEnemyAt = 0;
+		this.enemyDelay = 1000;
+	},
+	setupBullets: function () {
+		this.bulletPool = this.add.group();
+		this.bulletPool.enableBody = true;
+		this.bulletPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.bulletPool.createMultiple(100, 'bullet');
+
+		this.bulletPool.setAll('anchor.x', 0.5);
+		this.bulletPool.setAll('anchor.y', 0.5);
+		this.bulletPool.setAll('outOfBoundsKill', true);
+		this.bulletPool.setAll('checkWorldBounds', true);
+		
+		this.nextShotAt = 0;
+		this.shotDelay = 100;
+	},
+	setupExplosions: function () {
+		this.explosionPool = this.add.group();
+		this.explosionPool.enableBody = true;
+		this.explosionPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.explosionPool.createMultiple(100, 'kaboom');
+		this.explosionPool.setAll('anchor.x', 0.5);
+		this.explosionPool.setAll('anchor.y', 0.5);
+		this.explosionPool.forEach(function (explosion) {
+			explosion.animations.add('boom');
+		});
+	},
+	setupText: function () {
+		this.instructions = this.add.text( this.game.width / 2, this.game.height - 100,
+			'Shoot `em down with SPACEBAR Motherfucker\n' + 
+			'(Tapping/clicking does both)',
+			{ font: '12px monospace', fill: '#fff', align: 'center' }
+		);
+		this.instructions.anchor.setTo(0.5, 0.5);
+		this.instExpire = this.time.now + 10000;
 	},
 	quit: function () {
 
