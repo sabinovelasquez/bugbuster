@@ -8,8 +8,46 @@
 'use-strict';
 
 var Bugbuster = {
-	width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-	height: 540
+	SEA_SCROLL_SPEED: 60,
+	PLAYER_SPEED: 300,
+	ENEMY_MIN_Y_VELOCITY: 30,
+	ENEMY_MAX_Y_VELOCITY: 60,
+	SHOOTER_MIN_VELOCITY: 30,
+	SHOOTER_MAX_VELOCITY: 80,
+	BOSS_Y_VELOCITY: 15,
+	BOSS_X_VELOCITY: 200,
+	BULLET_VELOCITY: 500,
+	ENEMY_BULLET_VELOCITY: 150,
+	POWERUP_VELOCITY: 100,
+
+	SPAWN_ENEMY_DELAY: Phaser.Timer.SECOND,
+	SPAWN_SHOOTER_DELAY: Phaser.Timer.SECOND * 3,
+
+	SHOT_DELAY: Phaser.Timer.SECOND * 0.1,
+	SHOOTER_SHOT_DELAY: Phaser.Timer.SECOND * 2,
+	BOSS_SHOT_DELAY: Phaser.Timer.SECOND,
+
+	ENEMY_HEALTH: 2,
+	SHOOTER_HEALTH: 5,
+	BOSS_HEALTH: 500,
+
+	BULLET_DAMAGE: 1,
+	CRASH_DAMAGE: 5,
+
+	ENEMY_REWARD: 10,
+	SHOOTER_REWARD: 400,
+	BOSS_REWARD: 10000,
+	POWERUP_REWARD: 100,
+
+	ENEMY_DROP_RATE: 0.3,
+	SHOOTER_DROP_RATE: 0.5,
+	BOSS_DROP_RATE: 0,
+
+	PLAYER_EXTRA_LIVES: 4,
+	PLAYER_GHOST_TIME: Phaser.Timer.SECOND * 1,
+
+	INSTRUCTION_EXPIRE: Phaser.Timer.SECOND * 10,
+	RETURN_MESSAGE_DELAY: Phaser.Timer.SECOND * 2
 };
 
 Bugbuster.Boot = function(game){
@@ -19,9 +57,20 @@ Bugbuster.Boot = function(game){
 Bugbuster.Boot.prototype = {
 	init: function () {
 		console.warn('initialized');
+		this.input.maxPointers = 1;
+		if (this.game.device.desktop) {
+
+		}else {
+			this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+			this.scale.setMinMax(480, 260, 1024, 768);
+			this.scale.forceLandscape = true;
+			this.scale.pageAlignHorizontally = true;
+			this.scale.pageAlignVertically = true;
+		}
 	},
 	preload: function () {
 		console.warn('preloading');
+		//this.load.image('preloaderBar', 'assets/preloader-bar.png');
 	},
 	create: function () {
 		console.warn('creating');
@@ -30,22 +79,6 @@ Bugbuster.Boot.prototype = {
 }
 
 Bugbuster.Game = function (game) {
-	
-	this.fontConfig = {
-		titleFont: {
-			font: '30pt console',
-			fill: '#0f0'
-		}
-	};
-
-	this.enemies = {
-		bug: function () {
-
-		},
-		beetle: function () {
-
-		}
-	};
 
 };
 
@@ -55,6 +88,7 @@ Bugbuster.Game.prototype = {
 
 		this.setupBackground();
 		this.setupPlayer();
+		this.setupPlayerIcons();
 		this.setupEnemies();
 		this.setupBullets();
 		this.setupExplosions();
@@ -75,8 +109,13 @@ Bugbuster.Game.prototype = {
 		if (this.nextEnemyAt < this.time.now && this.enemyPool.countDead() > 0) {
 			this.nextEnemyAt = this.time.now + this.enemyDelay;
 			var enemy = this.enemyPool.getFirstExists(false);
-			enemy.reset(this.rnd.integerInRange(20, this.game.width - 20), 0);
-			enemy.body.velocity.y = this.rnd.integerInRange(30, 60);
+			enemy.reset(
+				this.rnd.integerInRange(20, this.game.width - 20), 0,
+				Bugbuster.ENEMY_HEALTH
+			);
+			enemy.body.velocity.y = this.rnd.integerInRange(Bugbuster.ENEMY_MIN_Y_VELOCITY, Bugbuster.ENEMY_MAX_Y_VELOCITY);
+
+			enemy.angle = this.enemyAngle;
 			enemy.play('fly');
 		}
 	},
@@ -101,7 +140,11 @@ Bugbuster.Game.prototype = {
 		}
 
 		if (this.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) || this.input.activePointer.isDown) {
-			this.fire();
+			if (this.returnText && this.returnText.exists) {
+				this.quitGame();
+			} else {
+				this.fire();
+			}
 		}
 	},
 	processDelayedEffects: function () {
@@ -146,19 +189,64 @@ Bugbuster.Game.prototype = {
 
 		var bullet = this.bulletPool.getFirstExists(false);
 		bullet.reset(this.ship.x, this.ship.y - 20);
-		bullet.body.velocity.y = -600;
+		bullet.body.velocity.y = -Bugbuster.BULLET_VELOCITY;
 
 	},
 	enemyHit: function (bullet, enemy) {
 		bullet.kill();
-		enemy.kill();
-		this.explode(enemy);
+		this.damageEnemy(enemy, Bugbuster.BULLET_DAMAGE);
 	},
 	playerHit: function (ship, enemy) {
-		enemy.kill();
-		ship.kill();
-		this.explode(ship);
+		if (this.ghostUntil && this.ghostUntil > this.time.now) {
+			return;
+		}
+		this.damageEnemy(enemy, Bugbuster.CRASH_DAMAGE);
+		var life = this.lives.getFirstAlive();
+		if (life !== null) {
+			life.kill();
+			this.ghostUntil = this.time.now + Bugbuster.PLAYER_GHOST_TIME;
+			this.ship.play('ghost');
+		} else {
+			this.explode(ship);
+			ship.kill();
+			this.displayEnd(false);
+		}
 		this.hitted = 12;
+	},
+	processDelayedEffects: function () {
+		if (this.instructions.exists && this.time.now > this.instExpire) {
+			this.instructions.destroy();
+		}
+		if (this.ghostUntil && this.ghostUntil < this.time.now) {
+			this.ghostUntil = null;
+			this.ship.play('fly');
+		}
+		if (this.showReturn && this.time.now > this.showReturn) {
+			this.returnText = this.add.text(
+				this.game.width / 2, this.game.height / 2 + 20,
+				'Press SPACEBAR or Tap Game to go back to Main Menu',
+				{ font: '12px Monaco', fill: '#fff'}
+			);
+			this.returnText.anchor.setTo(0.5, 0.5);
+			this.showReturn = false;
+		}
+	},
+	damageEnemy: function (enemy, damage) {
+		enemy.damage(damage);
+		if (enemy.alive) {
+			enemy.play('hit');
+		} else {
+			this.explode(enemy);
+			this.addToScore(enemy.reward);
+		}		
+	},
+	addToScore: function (score) {
+		this.score += score;
+		this.scoreText.text = this.score;
+		if (this.score >= 2000) {
+			this.enemyPool.destroy();
+			this.displayEnd(true);
+		}
 	},
 	explode: function (sprite) {
 		if (this.explosionPool.countDead() === 0) {
@@ -176,17 +264,27 @@ Bugbuster.Game.prototype = {
 	},
 	setupBackground: function () {
 		this.bg = this.add.tileSprite(0, 0, this.game.width, this.game.height, 'starfield');
-		this.bg.autoScroll(0, 12);
+		this.bg.autoScroll(0, Bugbuster.SEA_SCROLL_SPEED);
 	},
 	setupPlayer: function () {
 		this.ship = this.add.sprite(this.game.width / 2, this.game.height - 50, 'ship');
 		this.ship.anchor.setTo(0.5, 0.5);
 		this.ship.animations.add('fly', [ 0, 1 ], 20, true);
+		this.ship.animations.add('ghost', [ 1, 2 ], 20, true);
 		this.ship.play('fly');
 		this.physics.enable(this.ship, Phaser.Physics.ARCADE);
-		this.ship.speed = 300;
+		this.ship.speed = Bugbuster.PLAYER_SPEED;
 		this.ship.body.collideWorldBounds = true;
 		this.ship.body.setSize(20, 20, 0, -5);
+	},
+	setupPlayerIcons: function () {
+		this.lives = this.add.group();
+		var firstLifeIconX = this.game.width - 10 - (Bugbuster.PLAYER_EXTRA_LIVES * 30);
+		for (var i = 0; i < Bugbuster.PLAYER_EXTRA_LIVES; i++) {
+			var life = this.lives.create(firstLifeIconX + (30 * i), 30, 'ship');
+			life.scale.setTo(0.5, 0.5);
+			life.anchor.setTo(0.5, 0.5);
+		}
 	},
 	setupEnemies: function () {
 		this.enemyPool = this.add.group();
@@ -197,12 +295,18 @@ Bugbuster.Game.prototype = {
 		this.enemyPool.setAll('anchor.y', 0.5);
 		this.enemyPool.setAll('outOfBoundsKill', true);
 		this.enemyPool.setAll('checkWorldBounds', true);
+		this.enemyPool.setAll('reward', Bugbuster.ENEMY_REWARD, false, false, 0, true);
 		this.enemyPool.forEach(function (enemy) {
 			enemy.animations.add('fly', [ 0, 1 ], 20, true);
+			enemy.animations.add('hit', [ 1, 2 ], 20, false);
+			enemy.events.onAnimationComplete.add( function (e) {
+				e.play('fly');
+			}, this);
 		});
 
+		this.enemyAngle = 180;
 		this.nextEnemyAt = 0;
-		this.enemyDelay = 1000;
+		this.enemyDelay = Bugbuster.SPAWN_ENEMY_DELAY;
 	},
 	setupBullets: function () {
 		this.bulletPool = this.add.group();
@@ -216,7 +320,7 @@ Bugbuster.Game.prototype = {
 		this.bulletPool.setAll('checkWorldBounds', true);
 		
 		this.nextShotAt = 0;
-		this.shotDelay = 100;
+		this.shotDelay = Bugbuster.SHOT_DELAY;
 	},
 	setupExplosions: function () {
 		this.explosionPool = this.add.group();
@@ -233,15 +337,41 @@ Bugbuster.Game.prototype = {
 		this.instructions = this.add.text( this.game.width / 2, this.game.height - 100,
 			'Shoot `em down with SPACEBAR Motherfucker\n' + 
 			'(Tapping/clicking does both)',
-			{ font: '12px monospace', fill: '#fff', align: 'center' }
+			{ font: '12px Monaco', fill: '#fff', align: 'center' }
 		);
 		this.instructions.anchor.setTo(0.5, 0.5);
-		this.instExpire = this.time.now + 10000;
+		this.instExpire = this.time.now + Bugbuster.INSTRUCTION_EXPIRE;
+		this.score = 0;
+		this.scoreText = this.add.text(
+			this.game.width / 2, 30, '' + this.score,
+			{ font: '13px Monaco', fill: '#fff', align: 'center' }
+		);
+		this.scoreText.anchor.setTo(0.5, 0.5);
 	},
-	quit: function () {
-
-	}
-
+	displayEnd: function (win) {
+		if (this.endText && this.endText.exists) {
+			return;
+		}
+		var msg = win ? 'You Win!!!' : 'Fuck.';
+		this.endText = this.add.text( 
+			this.game.width / 2, this.game.height / 2 - 60, msg,
+			{ font: '15px Monaco', fill: '#fff' }
+		);
+		this.endText.anchor.setTo(0.5, 0);
+		this.showReturn = this.time.now + Bugbuster.RETURN_MESSAGE_DELAY;
+	},
+	quitGame: function (pointer) {
+		this.bg.destroy();
+		this.ship.destroy();
+		this.enemyPool.destroy();
+		this.bulletPool.destroy();
+		this.explosionPool.destroy();
+		this.instructions.destroy();
+		this.scoreText.destroy();
+		this.endText.destroy();
+		this.returnText.destroy();
+		this.state.start('MainMenu');
+  }
 };
 
 Bugbuster.Preloader = function (game) {
@@ -267,7 +397,17 @@ Bugbuster.MainMenu = function (game) {
 
 };
 Bugbuster.MainMenu.prototype = {
-   
+	preload: function () {
+		// this.load.image('titlepage', 'assets/titlepage.png');
+	},
+	update: function () {
+		if (this.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) || this.input.activePointer.isDown) {
+			this.startGame();
+		}
+	},
+	startGame: function (pointer) {
+		this.state.start('Game');
+	}
 };
 
 var game = new Phaser.Game(Bugbuster.width, Bugbuster.height, Phaser.CANVAS, 'game');
