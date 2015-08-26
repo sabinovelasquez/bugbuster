@@ -102,8 +102,6 @@ Bugbuster.Game.prototype = {
 	    this.nextShotAt = 0;
 		this.shotDelay = 200;
 
-		this.shotDelay = 100;
-
 		this.explosionPool = this.add.group();
 		this.explosionPool.enableBody = true;
 		this.explosionPool.physicsBodyType = Phaser.Physics.ARCADE;
@@ -190,7 +188,7 @@ Bugbuster.Game.prototype = {
 
 		var bullet = this.bulletPool.getFirstExists(false);
 		bullet.reset(this.ship.x, this.ship.y - 20);
-		bullet.body.velocity.y = -500;
+		bullet.body.velocity.y = -600;
 
 	},
 	enemyHit: function (bullet, enemy) {
@@ -202,7 +200,7 @@ Bugbuster.Game.prototype = {
 		enemy.kill();
 		ship.kill();
 		this.explode(ship);
-		this.hitted = 8;
+		this.hitted = 12;
 	},
 	explode: function (sprite) {
 		if (this.explosionPool.countDead() === 0) {
