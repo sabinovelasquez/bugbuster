@@ -8,16 +8,20 @@
 'use-strict';
 
 var Bugbuster = {
+
+	FONT_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
+	DIALOG_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'left' },
+
 	SEA_SCROLL_SPEED: 60,
 	PLAYER_SPEED: 300,
 	ENEMY_MIN_Y_VELOCITY: 30,
 	ENEMY_MAX_Y_VELOCITY: 60,
-	SHOOTER_MIN_VELOCITY: 30,
-	SHOOTER_MAX_VELOCITY: 80,
+	SHOOTER_MIN_VELOCITY: 200,
+	SHOOTER_MAX_VELOCITY: 250,
 	BOSS_Y_VELOCITY: 15,
 	BOSS_X_VELOCITY: 200,
 	BULLET_VELOCITY: 500,
-	ENEMY_BULLET_VELOCITY: 150,
+	ENEMY_BULLET_VELOCITY: 600,
 	POWERUP_VELOCITY: 100,
 
 	SPAWN_ENEMY_DELAY: Phaser.Timer.SECOND,
@@ -93,6 +97,7 @@ Bugbuster.Game.prototype = {
 		this.setupBullets();
 		this.setupExplosions();
 		this.setupText();
+		this.setupDialogs();
 
 		this.cursors = this.input.keyboard.createCursorKeys();
 	},
@@ -102,7 +107,19 @@ Bugbuster.Game.prototype = {
 		);
 
 		this.physics.arcade.overlap(
+			this.bulletPool, this.shooterPool, this.enemyHit, null, this
+		);
+
+		this.physics.arcade.overlap(
 			this.ship, this.enemyPool, this.playerHit, null, this
+		);
+
+		this.physics.arcade.overlap(
+			this.ship, this.shooterPool, this.playerHit, null, this
+		);
+
+		this.physics.arcade.overlap(
+			this.ship, this.enemyBulletPool, this.playerHit, null, this
 		);
 	},
 	spawnEnemies: function () {
@@ -117,6 +134,24 @@ Bugbuster.Game.prototype = {
 
 			enemy.angle = this.enemyAngle;
 			enemy.play('fly');
+		}
+		if (this.nextShooterAt < this.time.now && this.shooterPool.countDead() > 0) {
+			this.nextShooterAt = this.time.now + this.shooterDelay;
+			var shooter = this.shooterPool.getFirstExists(false);
+			shooter.reset(
+				this.rnd.integerInRange(20, this.game.width - 20), 0,
+				Bugbuster.SHOOTER_HEALTH
+			);
+
+			var target = this.rnd.integerInRange(20, this.game.width - 20);
+			shooter.rotation = this.physics.arcade.moveToXY(
+				shooter, target, this.game.height,
+				this.rnd.integerInRange(
+					Bugbuster.SHOOTER_MIN_VELOCITY, Bugbuster.SHOOTER_MAX_VELOCITY
+				)
+			) - Math.PI / 2;
+			shooter.play('fly');
+			shooter.nextShotAt = 0;
 		}
 	},
 	processPlayerInput: function () {
@@ -147,19 +182,13 @@ Bugbuster.Game.prototype = {
 			}
 		}
 	},
-	processDelayedEffects: function () {
-		if (this.instructions.exists && this.time.now > this.instExpire) {
-			this.instructions.destroy();
-		}
-	},
 	update: function () {
 		
 		this.checkCollisions();
 		this.spawnEnemies();
 		this.processPlayerInput();
 		this.processDelayedEffects();
-
-		//shake it
+		this.enemyFire();
 
 		if (this.hitted > 0) {
 			var rand1 = game.rnd.integerInRange(-5,5);
@@ -191,6 +220,18 @@ Bugbuster.Game.prototype = {
 		bullet.reset(this.ship.x, this.ship.y - 20);
 		bullet.body.velocity.y = -Bugbuster.BULLET_VELOCITY;
 
+	},
+	enemyFire: function() {
+		this.shooterPool.forEachAlive(function (enemy) {
+			if (this.time.now > enemy.nextShotAt && this.enemyBulletPool.countDead() > 0) {
+				var bullet = this.enemyBulletPool.getFirstExists(false);
+				bullet.reset(enemy.x, enemy.y);
+				this.physics.arcade.moveToObject(
+					bullet, this.ship, Bugbuster.ENEMY_BULLET_VELOCITY
+				);
+				enemy.nextShotAt = this.time.now + Bugbuster.SHOOTER_SHOT_DELAY;
+			}
+		}, this);
 	},
 	enemyHit: function (bullet, enemy) {
 		bullet.kill();
@@ -225,7 +266,7 @@ Bugbuster.Game.prototype = {
 			this.returnText = this.add.text(
 				this.game.width / 2, this.game.height / 2 + 20,
 				'Press SPACEBAR or Tap Game to go back to Main Menu',
-				{ font: '12px Monaco', fill: '#fff'}
+				Bugbuster.FONT_SETTINGS
 			);
 			this.returnText.anchor.setTo(0.5, 0.5);
 			this.showReturn = false;
@@ -245,8 +286,11 @@ Bugbuster.Game.prototype = {
 		this.scoreText.text = this.score;
 		if (this.score >= 2000) {
 			this.enemyPool.destroy();
+			this.shooterPool.destroy();
+			this.enemyBulletPool.destroy();
 			this.displayEnd(true);
 		}
+
 	},
 	explode: function (sprite) {
 		if (this.explosionPool.countDead() === 0) {
@@ -307,8 +351,41 @@ Bugbuster.Game.prototype = {
 		this.enemyAngle = 180;
 		this.nextEnemyAt = 0;
 		this.enemyDelay = Bugbuster.SPAWN_ENEMY_DELAY;
+
+		this.shooterPool = this.add.group();
+		this.shooterPool.enableBody = true;
+		this.shooterPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.shooterPool.createMultiple(20, 'vasp');
+		this.shooterPool.setAll('anchor.x', 0.5);
+		this.shooterPool.setAll('anchor.y', 0.5);
+		this.shooterPool.setAll('outOfBoundsKill', true);
+		this.shooterPool.setAll('checkWorldBounds', true);
+		this.shooterPool.setAll(
+			'reward', Bugbuster.SHOOTER_REWARD, false, false, 0, true
+		);
+		this.shooterPool.forEach(function (enemy) {
+			enemy.animations.add('fly', [ 0, 1 ], 20, true);
+			enemy.animations.add('hit', [ 1, 2 ], 20, false);
+			enemy.events.onAnimationComplete.add( function (e) {
+				e.play('fly');
+			}, this);
+		});
+
+		this.nextShooterAt = this.time.now + Phaser.Timer.SECOND * 5;
+		this.shooterDelay = Bugbuster.SPAWN_SHOOTER_DELAY;
+
 	},
 	setupBullets: function () {
+		this.enemyBulletPool = this.add.group();
+		this.enemyBulletPool.enableBody = true;
+		this.enemyBulletPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.enemyBulletPool.createMultiple(100, 'enemyBullet');
+		this.enemyBulletPool.setAll('anchor.x', 0.5);
+		this.enemyBulletPool.setAll('anchor.y', 0.5);
+		this.enemyBulletPool.setAll('outOfBoundsKill', true);
+		this.enemyBulletPool.setAll('checkWorldBounds', true);
+		this.enemyBulletPool.setAll('reward', 0, false, false, 0, true);
+		
 		this.bulletPool = this.add.group();
 		this.bulletPool.enableBody = true;
 		this.bulletPool.physicsBodyType = Phaser.Physics.ARCADE;
@@ -337,16 +414,24 @@ Bugbuster.Game.prototype = {
 		this.instructions = this.add.text( this.game.width / 2, this.game.height - 100,
 			'Shoot `em down with SPACEBAR Motherfucker\n' + 
 			'(Tapping/clicking does both)',
-			{ font: '12px Monaco', fill: '#fff', align: 'center' }
+			Bugbuster.FONT_SETTINGS
 		);
 		this.instructions.anchor.setTo(0.5, 0.5);
 		this.instExpire = this.time.now + Bugbuster.INSTRUCTION_EXPIRE;
 		this.score = 0;
 		this.scoreText = this.add.text(
 			this.game.width / 2, 30, '' + this.score,
-			{ font: '13px Monaco', fill: '#fff', align: 'center' }
+			Bugbuster.FONT_SETTINGS
 		);
 		this.scoreText.anchor.setTo(0.5, 0.5);
+	},
+	setupDialogs: function () {
+		this.dialogText = this.add.text(
+			20, this.game.height - 100,
+			'Dialogo',
+			Bugbuster.DIALOG_SETTINGS
+		);
+		// this.dialogText.anchor.setTo(0.5, 0.5);
 	},
 	displayEnd: function (win) {
 		if (this.endText && this.endText.exists) {
@@ -368,6 +453,7 @@ Bugbuster.Game.prototype = {
 		this.explosionPool.destroy();
 		this.instructions.destroy();
 		this.scoreText.destroy();
+		this.dialogText.destroy();
 		this.endText.destroy();
 		this.returnText.destroy();
 		this.state.start('MainMenu');
@@ -384,6 +470,8 @@ Bugbuster.Preloader.prototype = {
 		this.load.image('starfield', 'img/starfield.gif');
 		this.load.spritesheet('ship', 'img/ship.gif', 32, 28);
 		this.load.image('bullet', 'img/bullet.gif');
+		this.load.spritesheet('vasp', 'img/vasp.gif', 32, 21);
+		this.load.image('enemyBullet', 'img/vasp-bullet.gif');
 		this.load.spritesheet('bug', 'img/bug.gif', 26, 18);
 		this.load.spritesheet('kaboom', 'img/explode.gif', 32, 32);
 		
