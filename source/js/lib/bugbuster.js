@@ -10,7 +10,7 @@
 var Bugbuster = {
 
 	FONT_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
-	DIALOG_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'left' },
+	DIALOG_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
 
 	STAR_SCROLL_SPEED: 60,
 	PLAYER_SPEED: 300,
@@ -482,14 +482,15 @@ Bugbuster.Game.prototype = {
 	setupDialogs: function () {
 		this.intro = 1;
 		this.script = this.game.cache.getJSON('script');
-		this.avatar = this.add.sprite(20, 30, 'me');
+		this.avatar = this.add.sprite( (this.game.width / 2) -16 , (this.game.height / 2) -40, 'me');
 		this.satellite = this.add.sprite(this.game.width + 60, this.game.height - 40, 'satellite');
 
 		this.dialogText = this.add.text(
-			60, 40,
+			this.game.width / 2, this.game.height / 2,
 			'Ready.',
 			Bugbuster.DIALOG_SETTINGS
 		);
+		this.dialogText.anchor.setTo(0.5, 0);
 		this.dialogExpire = this.time.now + Bugbuster.DIALOG_TIME * 3;
 		// this.dialogText.anchor.setTo(0.5, 0.5);
 	},
