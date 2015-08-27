@@ -1,7 +1,7 @@
 [
 	{
 		"who" : "tutor",
-		"text": "Ok Bugbuster 12093, time to kill some bugs.",
+		"text": "Ok Bugbuster 9218, time to kill some bugs.",
 		"time": 4
 	},
 	{
@@ -36,7 +36,7 @@
 	},
 	{
 		"who" : "tutor",
-		"text": "You can carry only 3 nukes, but I can supply you when youre out.",
+		"text": "You can carry only 3 nukes, but I can supply you when you're out.",
 		"time": 4
 	},
 	{
@@ -52,7 +52,7 @@
 	},
 	{
 		"who" : "me",
-		"text": "Yeah I remember that, they can see us through it, right? To count the bugs and bring us back?",
+		"text": "Yeah I remember that. They can bring us back with it, right?",
 		"time": 4
 	},
 	{
@@ -83,9 +83,14 @@
 	},
 	{
 		"who" : "me",
-		"text": "Whoa! Did you see that?",
-		"time": 2,
+		"text": "Whoa!",
+		"time": 3,
 		"shake" : 1
+	},
+	{
+		"who" : "me",
+		"text": "Did you see that!?",
+		"time": 2
 	},
 	{
 		"who" : "tutor",
@@ -111,8 +116,7 @@
 	{
 		"who" : "tutor",
 		"text": "They never attacked us before! I guess they just had enough...",
-		"time": 4,
-		"shooters" : 1
+		"time": 4
 	},
 	{
 		"who" : "me",
@@ -122,7 +126,8 @@
 	{
 		"who" : "tutor",
 		"text": "Fuck, just two days till my retirement.",
-		"time": 2
+		"time": 2,
+		"shooters" : 1
 	},
 	{
 		"who" : "me",

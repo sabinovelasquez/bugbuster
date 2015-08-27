@@ -12,7 +12,7 @@ var Bugbuster = {
 	FONT_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
 	DIALOG_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'left' },
 
-	SEA_SCROLL_SPEED: 60,
+	STAR_SCROLL_SPEED: 60,
 	PLAYER_SPEED: 300,
 	ENEMY_MIN_Y_VELOCITY: 30,
 	ENEMY_MAX_Y_VELOCITY: 60,
@@ -330,8 +330,9 @@ Bugbuster.Game.prototype = {
 		this.music = game.sound.play('bgmusic');
 	},
 	setupBackground: function () {
+		this.scrollBg = Bugbuster.STAR_SCROLL_SPEED;
 		this.bg = this.add.tileSprite(0, 0, this.game.width, this.game.height, 'starfield');
-		this.bg.autoScroll(0, Bugbuster.SEA_SCROLL_SPEED);
+		this.bg.autoScroll(0, this.scrollBg);
 	},
 	setupPlayer: function () {
 		this.ship = this.add.sprite(this.game.width / 2, this.game.height - 50, 'ship');
@@ -452,6 +453,8 @@ Bugbuster.Game.prototype = {
 		this.avatar.play('talk');
 		if (this.script[current].attackers == 1) {
 			this.intro = 0;
+			this.scrollBg = Bugbuster.STAR_SCROLL_SPEED * 2;
+			this.bg.autoScroll(0, this.scrollBg);
 		}
 		if (this.script[current].satellite == 1) {
 			this.satellite.animations.add('blink', [ 0, 1, 2 ], 8, true);
