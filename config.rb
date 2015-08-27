@@ -24,12 +24,12 @@ end
 case ENV['TARGET'].to_s.downcase
   when 'production'
     activate :deploy do |deploy|
-    deploy.port     = 22
     deploy.method   = :sftp
-    deploy.host     = 'IP'
-    deploy.path     = '/public_html/'
-    deploy.user     = 'user'
-    deploy.password = 'optional'
+    deploy.host     = '45.55.240.255'
+    deploy.path     = '/var/www/sabino.cl/public_html/lab/bugbuster'
+    deploy.port     = 22
+    deploy.build_before = true
+    deploy.user     = 'sabino'
     end
   else
     activate :deploy do |deploy|
