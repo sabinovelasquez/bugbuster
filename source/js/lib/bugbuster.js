@@ -25,7 +25,7 @@ var Bugbuster = {
 	POWERUP_VELOCITY: 100,
 
 	SPAWN_ENEMY_DELAY: Phaser.Timer.SECOND,
-	SPAWN_SHOOTER_DELAY: Phaser.Timer.SECOND * 3,
+	SPAWN_SHOOTER_DELAY: Phaser.Timer.SECOND * 1.5,
 
 	SHOT_DELAY: Phaser.Timer.SECOND * 0.1,
 	SHOOTER_SHOT_DELAY: Phaser.Timer.SECOND * 2,
@@ -39,8 +39,8 @@ var Bugbuster = {
 	CRASH_DAMAGE: 5,
 
 	ENEMY_REWARD: 10,
-	SHOOTER_REWARD: 400,
-	BOSS_REWARD: 10000,
+	SHOOTER_REWARD: 20,
+	BOSS_REWARD: 100,
 	POWERUP_REWARD: 100,
 
 	ENEMY_DROP_RATE: 0.3,
@@ -50,7 +50,8 @@ var Bugbuster = {
 	PLAYER_EXTRA_LIVES: 4,
 	PLAYER_GHOST_TIME: Phaser.Timer.SECOND * 1,
 
-	INSTRUCTION_EXPIRE: Phaser.Timer.SECOND * 10,
+	DIALOG_TIME: Phaser.Timer.SECOND,
+
 	RETURN_MESSAGE_DELAY: Phaser.Timer.SECOND * 2
 };
 
@@ -98,7 +99,8 @@ Bugbuster.Game.prototype = {
 		this.setupExplosions();
 		this.setupText();
 		this.setupDialogs();
-
+		this.nextDialog = 0;
+		this.setupMusic();
 		this.cursors = this.input.keyboard.createCursorKeys();
 	},
 	checkCollisions: function () {
@@ -130,11 +132,13 @@ Bugbuster.Game.prototype = {
 				this.rnd.integerInRange(20, this.game.width - 20), 0,
 				Bugbuster.ENEMY_HEALTH
 			);
-			enemy.body.velocity.y = this.rnd.integerInRange(Bugbuster.ENEMY_MIN_Y_VELOCITY, Bugbuster.ENEMY_MAX_Y_VELOCITY);
+			enemy.body.velocity.y = this.rnd.integerInRange(this.newEnemyVelocity_min, this.newEnemyVelocity_max);
 
 			enemy.angle = this.enemyAngle;
 			enemy.play('fly');
 		}
+	},
+	spawnShooters: function () {
 		if (this.nextShooterAt < this.time.now && this.shooterPool.countDead() > 0) {
 			this.nextShooterAt = this.time.now + this.shooterDelay;
 			var shooter = this.shooterPool.getFirstExists(false);
@@ -185,25 +189,16 @@ Bugbuster.Game.prototype = {
 	update: function () {
 		
 		this.checkCollisions();
-		this.spawnEnemies();
+		if (this.intro == 0){
+			this.spawnEnemies();
+		}
+		if (this.aggresive == 1){
+			this.spawnShooters();
+		}
 		this.processPlayerInput();
 		this.processDelayedEffects();
 		this.enemyFire();
-
-		if (this.hitted > 0) {
-			var rand1 = game.rnd.integerInRange(-5,5);
-			var rand2 = game.rnd.integerInRange(-5,5);
-			game.world.setBounds(rand1, rand2, game.width + rand1, game.height + rand2);
-			if(this.hitted%2==0){
-				this.ship.tint = 0xff0000;
-			}else{
-				this.ship.tint = 0xffffff;
-			}
-			this.hitted --;
-			if (this.hitted == 0) {
-				game.world.setBounds(0, 0, game.width,game.height);
-			}
-		}
+		this.shakeIt();
 
 	},
 	fire: function() {
@@ -233,6 +228,22 @@ Bugbuster.Game.prototype = {
 			}
 		}, this);
 	},
+	shakeIt: function () {
+		if (this.hitted > 0) {
+			var rand1 = game.rnd.integerInRange(-5,5);
+			var rand2 = game.rnd.integerInRange(-5,5);
+			game.world.setBounds(rand1, rand2, game.width + rand1, game.height + rand2);
+			if(this.hitted%2==0){
+				this.ship.tint = 0xff0000;
+			}else{
+				this.ship.tint = 0xffffff;
+			}
+			this.hitted --;
+			if (this.hitted == 0) {
+				game.world.setBounds(0, 0, game.width,game.height);
+			}
+		}
+	},
 	enemyHit: function (bullet, enemy) {
 		bullet.kill();
 		this.damageEnemy(enemy, Bugbuster.BULLET_DAMAGE);
@@ -255,9 +266,18 @@ Bugbuster.Game.prototype = {
 		this.hitted = 12;
 	},
 	processDelayedEffects: function () {
-		if (this.instructions.exists && this.time.now > this.instExpire) {
-			this.instructions.destroy();
+
+		if (this.dialogText.exists && this.time.now > this.dialogExpire) {
+			if (this.script.length > this.nextDialog) {
+				this.showDialog();
+				this.nextDialog ++;
+			}else{
+				this.dialogText.destroy();
+				this.avatar.destroy();
+			}
+			
 		}
+
 		if (this.ghostUntil && this.ghostUntil < this.time.now) {
 			this.ghostUntil = null;
 			this.ship.play('fly');
@@ -306,6 +326,9 @@ Bugbuster.Game.prototype = {
 	render: function() {
 		// this.game.debug.body(this.ship);
 	},
+	setupMusic : function () {
+		this.music = game.sound.play('bgmusic');
+	},
 	setupBackground: function () {
 		this.bg = this.add.tileSprite(0, 0, this.game.width, this.game.height, 'starfield');
 		this.bg.autoScroll(0, Bugbuster.SEA_SCROLL_SPEED);
@@ -331,6 +354,8 @@ Bugbuster.Game.prototype = {
 		}
 	},
 	setupEnemies: function () {
+		this.newEnemyVelocity_min = Bugbuster.ENEMY_MIN_Y_VELOCITY;
+		this.newEnemyVelocity_max = Bugbuster.ENEMY_MAX_Y_VELOCITY;
 		this.enemyPool = this.add.group();
 		this.enemyPool.enableBody = true;
 		this.enemyPool.physicsBodyType = Phaser.Physics.ARCADE;
@@ -411,13 +436,6 @@ Bugbuster.Game.prototype = {
 		});
 	},
 	setupText: function () {
-		this.instructions = this.add.text( (this.game.width / 2) -.5, this.game.height - 100,
-			'Shoot `em down with SPACEBAR Motherfucker\n' + 
-			'(Tapping/clicking does both)',
-			Bugbuster.FONT_SETTINGS
-		);
-		this.instructions.anchor.setTo(0.5, 0.5);
-		this.instExpire = this.time.now + Bugbuster.INSTRUCTION_EXPIRE;
 		this.score = 0;
 		this.scoreText = this.add.text(
 			this.game.width / 2, 30, '' + this.score,
@@ -425,12 +443,51 @@ Bugbuster.Game.prototype = {
 		);
 		this.scoreText.anchor.setTo(0.5, 0.5);
 	},
+	showDialog: function () {
+		var current =  this.nextDialog;
+		this.dialogExpire = this.time.now + Bugbuster.DIALOG_TIME *  this.script[current].time;
+		this.dialogText.setText(this.script[current].text);
+		this.avatar.loadTexture( this.script[current].who );
+		this.avatar.animations.add('talk', [ 0, 1 ], 8, true);
+		this.avatar.play('talk');
+		if (this.script[current].attackers == 1) {
+			this.intro = 0;
+		}
+		if (this.script[current].satellite == 1) {
+			this.satellite.animations.add('blink', [ 0, 1, 2 ], 8, true);
+			this.satellite.play('blink');
+			this.satellite.x = this.game.width / 2;
+			var tween = this.game.add.tween(this.satellite).to( { x: this.satellite.x - 50 }, 800, "Linear", true, 0, 25);
+			tween.yoyo(true, 0);
+		}
+		if (this.script[current].aggresive == 1) {
+			this.enemyAngle = 0;
+			this.newEnemyVelocity_min = Bugbuster.ENEMY_MIN_Y_VELOCITY * 2.2;
+			this.newEnemyVelocity_max = Bugbuster.ENEMY_MAX_Y_VELOCITY * 2.2;
+			this.enemyDelay = this.enemyDelay / 2;
+		}
+		if (this.script[current].shake == 1) {
+			this.hitted = 180;
+			var tween = this.game.add.tween(this.satellite).to( { angle: 45, y: this.satellite.y + 80 }, 4000, "Linear", true);
+		}
+		if (this.script[current].shooters == 1) {
+			this.aggresive = 1;
+			this.satellite.destroy();
+		}
+
+	},
 	setupDialogs: function () {
+		this.intro = 1;
+		this.script = this.game.cache.getJSON('script');
+		this.avatar = this.add.sprite(20, 30, 'me');
+		this.satellite = this.add.sprite(this.game.width + 60, this.game.height - 40, 'satellite');
+
 		this.dialogText = this.add.text(
-			20, this.game.height - 100,
-			'Dialogo',
+			60, 40,
+			'Ready.',
 			Bugbuster.DIALOG_SETTINGS
 		);
+		this.dialogExpire = this.time.now + Bugbuster.DIALOG_TIME * 3;
 		// this.dialogText.anchor.setTo(0.5, 0.5);
 	},
 	displayEnd: function (win) {
@@ -442,6 +499,7 @@ Bugbuster.Game.prototype = {
 			(this.game.width / 2) -.5, this.game.height / 2 - 60, msg,
 			{ font: '15px Monaco', fill: '#fff' }
 		);
+		this.music.fadeOut(4000);
 		this.endText.anchor.setTo(0.5, 0);
 		this.showReturn = this.time.now + Bugbuster.RETURN_MESSAGE_DELAY;
 	},
@@ -451,11 +509,12 @@ Bugbuster.Game.prototype = {
 		this.enemyPool.destroy();
 		this.bulletPool.destroy();
 		this.explosionPool.destroy();
-		this.instructions.destroy();
 		this.scoreText.destroy();
 		this.dialogText.destroy();
 		this.endText.destroy();
 		this.returnText.destroy();
+		this.nextDialog = 0;
+		this.aggresive = 0;
 		this.state.start('MainMenu');
   }
 };
@@ -466,7 +525,7 @@ Bugbuster.Preloader = function (game) {
 
 Bugbuster.Preloader.prototype = {
     preload: function () {
-
+    	this.load.json('script', 'json/script.json');
 		this.load.image('starfield', 'img/starfield.gif');
 		this.load.spritesheet('ship', 'img/ship.gif', 32, 28);
 		this.load.image('bullet', 'img/bullet.gif');
@@ -474,7 +533,10 @@ Bugbuster.Preloader.prototype = {
 		this.load.image('enemyBullet', 'img/vasp-bullet.gif');
 		this.load.spritesheet('bug', 'img/bug.gif', 26, 18);
 		this.load.spritesheet('kaboom', 'img/explode.gif', 32, 32);
-		
+		this.load.spritesheet('me', 'img/me.gif', 32, 32);
+		this.load.spritesheet('tutor', 'img/tutor.gif', 32, 32);
+		this.load.spritesheet('satellite', 'img/satellite.gif', 52, 30);
+		this.load.audio('bgmusic', 'sound/pantera.mp3');
 	},
 	create: function () {
 		this.state.start('Game');
@@ -498,7 +560,7 @@ Bugbuster.MainMenu.prototype = {
 	}
 };
 
-var game = new Phaser.Game(Bugbuster.width, Bugbuster.height, Phaser.CANVAS, 'game');
+var game = new Phaser.Game($('#game').width(), $('#game').height(), Phaser.CANVAS, 'game');
 
 game.state.add('Boot', Bugbuster.Boot);
 game.state.add('Preloader', Bugbuster.Preloader);

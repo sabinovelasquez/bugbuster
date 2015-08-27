@@ -1,0 +1,132 @@
+[
+	{
+		"who" : "tutor",
+		"text": "Ok Bugbuster 12093, time to kill some bugs.",
+		"time": 4
+	},
+	{
+		"who" : "me",
+		"text": "Hello! my name is...",
+		"time": 1
+	},
+	{
+		"who" : "tutor",
+		"text": "HEY! They dont pay us to chat. They pay us to kill bugs. TEN credits per bug.",
+		"time": 4
+	},
+	{
+		"who" : "me",
+		"text": "Oh I'm sorry... *jerk*",
+		"time": 2
+	},
+	{
+		"who" : "tutor",
+		"text": "So listen up, remember the simulator? Same deal here.",
+		"time": 3
+	},
+	{
+		"who" : "me",
+		"text": "Alright, I shoot with SPACEBAR.",
+		"time": 2
+	},
+	{
+		"who" : "tutor",
+		"text": "That's right, and when you see a group, you can nuke 'em with C.",
+		"time": 4
+	},
+	{
+		"who" : "tutor",
+		"text": "You can carry only 3 nukes, but I can supply you when youre out.",
+		"time": 4
+	},
+	{
+		"who" : "me",
+		"text": "Gotcha.",
+		"time": 2
+	},
+	{
+		"who" : "tutor",
+		"text": "Last thing, see that satellite? PROTECT IT. That's our ticket back home.",
+		"time": 5,
+		"satellite": 1
+	},
+	{
+		"who" : "me",
+		"text": "Yeah I remember that, they can see us through it, right? To count the bugs and bring us back?",
+		"time": 4
+	},
+	{
+		"who" : "tutor",
+		"text": "Exactly. Oh, there they are, SHOOT 'EM!",
+		"time": 3,
+		"attackers": 1
+	},
+	{
+		"who" : "me",
+		"text": "It looks like they're escaping... Why they don't fight back?",
+		"time": 4
+	},
+	{
+		"who" : "tutor",
+		"text": "Just shoot them rookie.",
+		"time": 3
+	},
+	{
+		"who" : "me",
+		"text": "This doesn't look like a threat to me...",
+		"time": 3
+	},
+	{
+		"who" : "tutor",
+		"text": "Whatever, it looks like a new car to me.",
+		"time": 3
+	},
+	{
+		"who" : "me",
+		"text": "Whoa! Did you see that?",
+		"time": 2,
+		"shake" : 1
+	},
+	{
+		"who" : "tutor",
+		"text": "See what, greenpeace?",
+		"time": 3
+	},
+	{
+		"who" : "me",
+		"text": "FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU",
+		"time": 2
+	},
+	{
+		"who" : "tutor",
+		"text": "...And there goes my pension.",
+		"time": 3
+	},
+	{
+		"who" : "me",
+		"text": "What are we gonna do!",
+		"time": 3,
+		"aggresive": 1
+	},
+	{
+		"who" : "tutor",
+		"text": "They never attacked us before! I guess they just had enough...",
+		"time": 4,
+		"shooters" : 1
+	},
+	{
+		"who" : "me",
+		"text": "How are we going to go back home!",
+		"time": 3
+	},
+	{
+		"who" : "tutor",
+		"text": "Fuck, just two days till my retirement.",
+		"time": 2
+	},
+	{
+		"who" : "me",
+		"text": "Ok, focus. You can do this.",
+		"time": 3
+	}
+]
