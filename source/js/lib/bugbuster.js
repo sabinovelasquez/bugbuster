@@ -44,8 +44,8 @@ var Bugbuster = {
 	BOSS_REWARD: 100,
 	POWERUP_REWARD: 100,
 
-	ENEMY_DROP_RATE: 0.3,
-	SHOOTER_DROP_RATE: 0.5,
+	ENEMY_DROP_RATE: 0,
+	SHOOTER_DROP_RATE: .2,
 	BOSS_DROP_RATE: 0,
 
 	PLAYER_EXTRA_LIVES: 20,
@@ -299,8 +299,20 @@ Bugbuster.Game.prototype = {
 			enemy.play('hit');
 		} else {
 			this.explode(enemy);
+			this.spawnPowerUp(enemy);
 			this.addToScore(enemy.reward);
 		}		
+	},
+	spawnPowerUp: function (enemy) {
+		if (this.powerUpPool.countDead() === 0 || this.weaponLevel === 5) {
+			return;
+		}
+
+		if (this.rnd.frac() < enemy.dropRate) {
+			var powerUp = this.powerUpPool.getFirstExists(false);
+			powerUp.reset(enemy.x, enemy.y);
+			powerUp.body.velocity.y = Bugbuster.POWERUP_VELOCITY;
+		}
 	},
 	addToScore: function (score) {
 		this.score += score;
@@ -349,7 +361,17 @@ Bugbuster.Game.prototype = {
 	setupPlayerIcons: function () {
 		this.lives_bg = this.add.group();
 		this.lives = this.add.group();
-		
+
+		this.powerUpPool = this.add.group();
+		this.powerUpPool.enableBody = true;
+		this.powerUpPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.powerUpPool.createMultiple(5, 'life_up');
+		this.powerUpPool.setAll('anchor.x', 0.5);
+		this.powerUpPool.setAll('anchor.y', 0.5);
+		this.powerUpPool.setAll('outOfBoundsKill', true);
+		this.powerUpPool.setAll('checkWorldBounds', true);
+		this.powerUpPool.setAll('reward', Bugbuster.POWERUP_REWARD, false, false, 0, true);
+
 		var firstLifeIconX = this.game.width - 16 - (Bugbuster.PLAYER_EXTRA_LIVES * 8);
 		for (var i = 0; i < Bugbuster.PLAYER_EXTRA_LIVES; i++) {
 			var life = this.lives.create(firstLifeIconX - (8 * i), 10, 'energy');
@@ -370,6 +392,7 @@ Bugbuster.Game.prototype = {
 		this.enemyPool.setAll('outOfBoundsKill', true);
 		this.enemyPool.setAll('checkWorldBounds', true);
 		this.enemyPool.setAll('reward', Bugbuster.ENEMY_REWARD, false, false, 0, true);
+		this.enemyPool.setAll('dropRate', Bugbuster.ENEMY_DROP_RATE, false, false, 0, true);
 		this.enemyPool.forEach(function (enemy) {
 			enemy.animations.add('fly', [ 0, 1 ], 20, true);
 			enemy.animations.add('hit', [ 1, 2 ], 20, false);
@@ -390,9 +413,9 @@ Bugbuster.Game.prototype = {
 		this.shooterPool.setAll('anchor.y', 0.5);
 		this.shooterPool.setAll('outOfBoundsKill', true);
 		this.shooterPool.setAll('checkWorldBounds', true);
-		this.shooterPool.setAll(
-			'reward', Bugbuster.SHOOTER_REWARD, false, false, 0, true
-		);
+		this.shooterPool.setAll('reward', Bugbuster.SHOOTER_REWARD, false, false, 0, true);
+		this.shooterPool.setAll('dropRate', Bugbuster.SHOOTER_DROP_RATE, false, false, 0, true);
+
 		this.shooterPool.forEach(function (enemy) {
 			enemy.animations.add('fly', [ 0, 1 ], 20, true);
 			enemy.animations.add('hit', [ 1, 2 ], 20, false);
@@ -550,6 +573,7 @@ Bugbuster.Preloader.prototype = {
 		this.load.spritesheet('me', 'img/me.gif', 32, 32);
 		this.load.spritesheet('energy', 'img/energy.gif', 8, 24);
 		this.load.spritesheet('energy_bg', 'img/energy_bg.gif', 8, 24);
+		this.load.image('life_up', 'img/pill_up.gif');
 		this.load.spritesheet('tutor', 'img/tutor.gif', 32, 32);
 		this.load.spritesheet('satellite', 'img/satellite.gif', 52, 30);
 		this.load.audio('bgmusic', 'sound/pantera.mp3');
