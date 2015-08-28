@@ -10,14 +10,15 @@
 var Bugbuster = {
 
 	FONT_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
+	SCORE_SETTINGS: { font: '15px Monaco', fill: '#fff', align: 'center' },
 	DIALOG_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
 
 	STAR_SCROLL_SPEED: 60,
 	PLAYER_SPEED: 300,
-	ENEMY_MIN_Y_VELOCITY: 30,
-	ENEMY_MAX_Y_VELOCITY: 60,
-	SHOOTER_MIN_VELOCITY: 200,
-	SHOOTER_MAX_VELOCITY: 250,
+	ENEMY_MIN_Y_VELOCITY: 90,
+	ENEMY_MAX_Y_VELOCITY: 120,
+	SHOOTER_MIN_VELOCITY: 250,
+	SHOOTER_MAX_VELOCITY: 300,
 	BOSS_Y_VELOCITY: 15,
 	BOSS_X_VELOCITY: 200,
 	BULLET_VELOCITY: 500,
@@ -47,7 +48,7 @@ var Bugbuster = {
 	SHOOTER_DROP_RATE: 0.5,
 	BOSS_DROP_RATE: 0,
 
-	PLAYER_EXTRA_LIVES: 4,
+	PLAYER_EXTRA_LIVES: 20,
 	PLAYER_GHOST_TIME: Phaser.Timer.SECOND * 1,
 
 	DIALOG_TIME: Phaser.Timer.SECOND,
@@ -346,12 +347,15 @@ Bugbuster.Game.prototype = {
 		this.ship.body.setSize(20, 20, 0, -5);
 	},
 	setupPlayerIcons: function () {
+		this.lives_bg = this.add.group();
 		this.lives = this.add.group();
-		var firstLifeIconX = this.game.width - 10 - (Bugbuster.PLAYER_EXTRA_LIVES * 30);
+		
+		var firstLifeIconX = this.game.width - 16 - (Bugbuster.PLAYER_EXTRA_LIVES * 8);
 		for (var i = 0; i < Bugbuster.PLAYER_EXTRA_LIVES; i++) {
-			var life = this.lives.create(firstLifeIconX + (30 * i), 30, 'ship');
-			life.scale.setTo(0.5, 0.5);
-			life.anchor.setTo(0.5, 0.5);
+			var life = this.lives.create(firstLifeIconX - (8 * i), 10, 'energy');
+			var life_bg = this.lives_bg.create(firstLifeIconX - (8 * i), 10, 'energy_bg');
+			// life.scale.setTo(0.5, 0.5);
+			// life.anchor.setTo(0.5, 0.5);
 		}
 	},
 	setupEnemies: function () {
@@ -439,8 +443,8 @@ Bugbuster.Game.prototype = {
 	setupText: function () {
 		this.score = 0;
 		this.scoreText = this.add.text(
-			this.game.width / 2, 30, '' + this.score,
-			Bugbuster.FONT_SETTINGS
+			this.game.width / 2, 25, '' + this.score,
+			Bugbuster.SCORE_SETTINGS
 		);
 		this.scoreText.anchor.setTo(0.5, 0.5);
 	},
@@ -453,7 +457,7 @@ Bugbuster.Game.prototype = {
 		this.avatar.play('talk');
 		if (this.script[current].attackers == 1) {
 			this.intro = 0;
-			this.scrollBg = Bugbuster.STAR_SCROLL_SPEED * 2;
+			this.scrollBg = Bugbuster.STAR_SCROLL_SPEED * 2.2;
 			this.bg.autoScroll(0, this.scrollBg);
 		}
 		if (this.script[current].satellite == 1) {
@@ -471,7 +475,13 @@ Bugbuster.Game.prototype = {
 		}
 		if (this.script[current].shake == 1) {
 			this.hitted = 180;
-			var tween = this.game.add.tween(this.satellite).to( { angle: 45, y: this.satellite.y + 80 }, 4000, "Linear", true);
+			
+			for (i = 0; i < 16; i++ ) {
+				var life = this.lives.getFirstAlive();
+				life.kill();
+			}
+
+			var tween = this.game.add.tween(this.satellite).to( { angle: 45, y: this.game.height + 80 }, 4000, "Linear", true);
 		}
 		if (this.script[current].shooters == 1) {
 			this.aggresive = 1;
@@ -483,7 +493,7 @@ Bugbuster.Game.prototype = {
 		this.intro = 1;
 		this.script = this.game.cache.getJSON('script');
 		this.avatar = this.add.sprite( (this.game.width / 2) -16 , (this.game.height / 2) -40, 'me');
-		this.satellite = this.add.sprite(this.game.width + 60, this.game.height - 40, 'satellite');
+		this.satellite = this.add.sprite(this.game.width + 60, this.game.height/2 + 80, 'satellite');
 
 		this.dialogText = this.add.text(
 			this.game.width / 2, this.game.height / 2,
@@ -538,6 +548,8 @@ Bugbuster.Preloader.prototype = {
 		this.load.spritesheet('bug', 'img/bug.gif', 26, 18);
 		this.load.spritesheet('kaboom', 'img/explode.gif', 32, 32);
 		this.load.spritesheet('me', 'img/me.gif', 32, 32);
+		this.load.spritesheet('energy', 'img/energy.gif', 8, 24);
+		this.load.spritesheet('energy_bg', 'img/energy_bg.gif', 8, 24);
 		this.load.spritesheet('tutor', 'img/tutor.gif', 32, 32);
 		this.load.spritesheet('satellite', 'img/satellite.gif', 52, 30);
 		this.load.audio('bgmusic', 'sound/pantera.mp3');
