@@ -14,7 +14,7 @@ var Bugbuster = {
 	DIALOG_SETTINGS: { font: '12px Monaco', fill: '#fff', align: 'center' },
 
 	STAR_SCROLL_SPEED: 60,
-	PLAYER_SPEED: 300,
+	PLAYER_SPEED: 200,
 	ENEMY_MIN_Y_VELOCITY: 90,
 	ENEMY_MAX_Y_VELOCITY: 120,
 	SHOOTER_MIN_VELOCITY: 250,
