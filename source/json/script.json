@@ -11,7 +11,7 @@
 	},
 	{
 		"who" : "tutor",
-		"text": "HEY! They dont pay us to chat. They pay us to kill bugs. TEN credits per bug.",
+		"text": "HEY! We don't pay you to chat. We pay you to kill bugs.",
 		"time": 4
 	},
 	{
@@ -21,12 +21,12 @@
 	},
 	{
 		"who" : "tutor",
-		"text": "So listen up, remember the simulator? Same deal here.",
+		"text": "So listen up, remember the simulator?",
 		"time": 3
 	},
 	{
 		"who" : "me",
-		"text": "Alright, I shoot with SPACEBAR.",
+		"text": "Yes, I shoot with SPACEBAR.",
 		"time": 2
 	},
 	{
@@ -46,13 +46,13 @@
 	},
 	{
 		"who" : "tutor",
-		"text": "Last thing, see that satellite? PROTECT IT. That's our ticket back home.",
+		"text": "Last thing, see that satellite? PROTECT IT. That's your ticket back home.",
 		"time": 5,
 		"satellite": 1
 	},
 	{
 		"who" : "me",
-		"text": "Yeah I remember that. They can bring us back with it, right?",
+		"text": "Yeah I remember that. You can bring me back with it, right?",
 		"time": 4
 	},
 	{
@@ -78,54 +78,35 @@
 	},
 	{
 		"who" : "tutor",
-		"text": "Whatever, it looks like a new car to me.",
-		"time": 3
-	},
-	{
-		"who" : "me",
-		"text": "Whoa!",
-		"time": 3,
-		"shake" : 1
-	},
-	{
-		"who" : "me",
-		"text": "Did you see that!?",
-		"time": 2
-	},
-	{
-		"who" : "tutor",
-		"text": "See what, greenpeace?",
+		"text": "Whatever greenpeace, it looks like a new car to me.",
 		"time": 3
 	},
 	{
 		"who" : "me",
 		"text": "FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU",
-		"time": 2
+		"time": 3,
+		"shake" : 1
 	},
 	{
 		"who" : "tutor",
-		"text": "...And there goes my pension.",
+		"text": "God..da.n..it ...r..kie...",
 		"time": 3
 	},
 	{
 		"who" : "me",
-		"text": "What are we gonna do!",
-		"time": 3,
+		"text": "I thought they were harmless! BRING ME BACK!",
+		"time": 4,
 		"aggresive": 1
 	},
 	{
 		"who" : "tutor",
-		"text": "They never attacked us before! I guess they just had enough...",
-		"time": 4
+		"text": "...",
+		"time": 3,
+		"nosignal": 1
 	},
 	{
 		"who" : "me",
-		"text": "How are we going to go back home!",
-		"time": 3
-	},
-	{
-		"who" : "tutor",
-		"text": "Fuck, just two days till my retirement.",
+		"text": "Hello?!",
 		"time": 2
 	},
 	{

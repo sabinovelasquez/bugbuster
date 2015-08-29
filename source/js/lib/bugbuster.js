@@ -34,7 +34,7 @@ var Bugbuster = {
 
 	ENEMY_HEALTH: 2,
 	SHOOTER_HEALTH: 6,
-	BOSS_HEALTH: 500,
+	BOSS_HEALTH: 50,
 
 	BULLET_DAMAGE: 1,
 	CRASH_DAMAGE: 5,
@@ -45,8 +45,8 @@ var Bugbuster = {
 	POWERUP_REWARD: 100,
 
 	ENEMY_DROP_RATE: 0,
-	SHOOTER_DROP_RATE: .2,
-	BOSS_DROP_RATE: 0,
+	SHOOTER_DROP_RATE: .3,
+	BOSS_DROP_RATE: 1,
 
 	PLAYER_EXTRA_LIVES: 20,
 	PLAYER_GHOST_TIME: Phaser.Timer.SECOND * 1,
@@ -124,6 +124,37 @@ Bugbuster.Game.prototype = {
 		this.physics.arcade.overlap(
 			this.ship, this.enemyBulletPool, this.playerHit, null, this
 		);
+		this.physics.arcade.overlap(
+			this.ship, this.powerUpPool, this.playerPowerUp, null, this
+		);
+		if (this.bossApproaching === false) {
+			this.physics.arcade.overlap(
+				this.bulletPool, this.bossPool, this.enemyHit, null, this
+			);
+
+			this.physics.arcade.overlap(
+				this.player, this.bossPool, this.playerHit, null, this
+			);
+		}
+	},
+	orderPosition: function () {
+		var firstPos = this.game.width - 16 - (Bugbuster.PLAYER_EXTRA_LIVES * 8);
+		var i = 0;
+		this.lives.forEachAlive( function (life) {
+			life.position.x = firstPos - (8 * i);
+			i ++;
+		} );
+	},
+	playerPowerUp: function (player, powerUp) {
+		// this.addToScore(powerUp.reward);
+		var lastdead = this.lives.getFirstDead();
+		
+		if(lastdead !== null){
+			lastdead.reset(lastdead.position.x, 10);
+		}
+		this.orderPosition();
+		powerUp.kill();
+		
 	},
 	spawnEnemies: function () {
 		if (this.nextEnemyAt < this.time.now && this.enemyPool.countDead() > 0) {
@@ -158,6 +189,13 @@ Bugbuster.Game.prototype = {
 			shooter.play('fly');
 			shooter.nextShotAt = 0;
 		}
+	},
+	spawnBoss: function () {
+		this.bossApproaching = true;
+		this.boss.reset(this.game.width / 2, 0, Bugbuster.BOSS_HEALTH);
+		this.physics.enable(this.boss, Phaser.Physics.ARCADE);
+		this.boss.body.velocity.y = Bugbuster.BOSS_Y_VELOCITY;
+		this.boss.play('fly');
 	},
 	processPlayerInput: function () {
 		this.ship.body.velocity.x = 0;
@@ -228,6 +266,37 @@ Bugbuster.Game.prototype = {
 				enemy.nextShotAt = this.time.now + Bugbuster.SHOOTER_SHOT_DELAY;
 			}
 		}, this);
+		if (this.bossApproaching === false && this.boss.alive && 
+			this.boss.nextShotAt < this.time.now &&
+			this.enemyBulletPool.countDead() >= 10) {
+
+			this.boss.nextShotAt = this.time.now + Bugbuster.BOSS_SHOT_DELAY;
+
+			for (var i = 0; i < 5; i++) {
+				var leftBullet = this.enemyBulletPool.getFirstExists(false);
+				leftBullet.reset(this.boss.x - 10 - i * 10, this.boss.y + 20);
+				var rightBullet = this.enemyBulletPool.getFirstExists(false);
+				rightBullet.reset(this.boss.x + 10 + i * 10, this.boss.y + 20);
+
+				if (this.boss.health > Bugbuster.BOSS_HEALTH / 2) {
+					this.physics.arcade.moveToObject(
+						leftBullet, this.ship, Bugbuster.ENEMY_BULLET_VELOCITY
+					);
+					this.physics.arcade.moveToObject(
+						rightBullet, this.ship, Bugbuster.ENEMY_BULLET_VELOCITY
+					);
+				} else {
+					this.physics.arcade.moveToXY(
+						leftBullet, this.ship.x - i * 100, this.ship.y,
+						Bugbuster.ENEMY_BULLET_VELOCITY
+					);
+					this.physics.arcade.moveToXY(
+						rightBullet, this.ship.x + i * 100, this.ship.y,
+						Bugbuster.ENEMY_BULLET_VELOCITY
+					);
+				}
+			}
+		}
 	},
 	shakeIt: function () {
 		if (this.hitted > 0) {
@@ -264,6 +333,7 @@ Bugbuster.Game.prototype = {
 			ship.kill();
 			this.displayEnd(false);
 		}
+		this.orderPosition();
 		this.hitted = 12;
 	},
 	processDelayedEffects: function () {
@@ -286,11 +356,20 @@ Bugbuster.Game.prototype = {
 		if (this.showReturn && this.time.now > this.showReturn) {
 			this.returnText = this.add.text(
 				(this.game.width / 2) -.5, this.game.height / 2 + 20,
-				'Press SPACEBAR or Tap Game to go back to Main Menu',
+				'Press SPACEBAR to go back',
 				Bugbuster.FONT_SETTINGS
 			);
 			this.returnText.anchor.setTo(0.5, 0.5);
 			this.showReturn = false;
+		}
+		if (this.bossApproaching && this.boss.y > 80) {
+			this.bossApproaching = false;
+			this.boss.nextShotAt = 0;
+
+			this.boss.body.velocity.y = 0;
+			this.boss.body.velocity.x = Bugbuster.BOSS_X_VELOCITY;
+			this.boss.body.bounce.x = 1;
+			this.boss.body.collideWorldBounds = true;
 		}
 	},
 	damageEnemy: function (enemy, damage) {
@@ -301,7 +380,15 @@ Bugbuster.Game.prototype = {
 			this.explode(enemy);
 			this.spawnPowerUp(enemy);
 			this.addToScore(enemy.reward);
-		}		
+			if (enemy.key === 'boss') {
+				this.enemyPool.destroy();
+				this.shooterPool.destroy();
+				this.bossPool.destroy();
+				this.enemyBulletPool.destroy();
+				this.displayEnd(true);
+			}	
+		}
+			
 	},
 	spawnPowerUp: function (enemy) {
 		if (this.powerUpPool.countDead() === 0 || this.weaponLevel === 5) {
@@ -317,13 +404,15 @@ Bugbuster.Game.prototype = {
 	addToScore: function (score) {
 		this.score += score;
 		this.scoreText.text = this.score;
-		if (this.score >= 2000) {
-			this.enemyPool.destroy();
-			this.shooterPool.destroy();
-			this.enemyBulletPool.destroy();
-			this.displayEnd(true);
+		// if (this.score >= 2000) {
+		// 	this.enemyPool.destroy();
+		// 	this.shooterPool.destroy();
+		// 	this.enemyBulletPool.destroy();
+		// 	this.displayEnd(true);
+		// }
+		if (this.score >= 500 && this.bossPool.countDead() == 1) {
+			this.spawnBoss();
 		}
-
 	},
 	explode: function (sprite) {
 		if (this.explosionPool.countDead() === 0) {
@@ -426,7 +515,29 @@ Bugbuster.Game.prototype = {
 
 		this.nextShooterAt = this.time.now + Phaser.Timer.SECOND * 5;
 		this.shooterDelay = Bugbuster.SPAWN_SHOOTER_DELAY;
+		this.bossPool = this.add.group();
+		this.bossPool.enableBody = true;
+		this.bossPool.physicsBodyType = Phaser.Physics.ARCADE;
+		this.bossPool.createMultiple(1, 'boss');
+		this.bossPool.setAll('anchor.x', 0.5);
+		this.bossPool.setAll('anchor.y', 0.5);
+		this.bossPool.setAll('outOfBoundsKill', true);
+		this.bossPool.setAll('checkWorldBounds', true);
+		this.bossPool.setAll('reward', Bugbuster.BOSS_REWARD, false, false, 0, true);
+		this.bossPool.setAll(
+			'dropRate', Bugbuster.BOSS_DROP_RATE, false, false, 0, true
+		);
 
+		this.bossPool.forEach(function (enemy) {
+			enemy.animations.add('fly', [ 0, 1 ], 30, true);
+			enemy.animations.add('hit', [ 1, 2 ], 20, false);
+			enemy.events.onAnimationComplete.add( function (e) {
+				e.play('fly');
+			}, this);
+		});
+
+		this.boss = this.bossPool.getTop();
+		this.bossApproaching = false;
 	},
 	setupBullets: function () {
 		this.enemyBulletPool = this.add.group();
@@ -476,8 +587,14 @@ Bugbuster.Game.prototype = {
 		this.dialogExpire = this.time.now + Bugbuster.DIALOG_TIME *  this.script[current].time;
 		this.dialogText.setText(this.script[current].text);
 		this.avatar.loadTexture( this.script[current].who );
-		this.avatar.animations.add('talk', [ 0, 1 ], 8, true);
-		this.avatar.play('talk');
+
+		if (this.script[current].nosignal != 1) {
+			this.avatar.animations.add('talk', [ 0, 1 ], 8, true);
+			this.avatar.play('talk');
+		}else{
+			this.avatar.animations.frame = 2;
+		}
+		
 		if (this.script[current].attackers == 1) {
 			this.intro = 0;
 			this.scrollBg = Bugbuster.STAR_SCROLL_SPEED * 2.2;
@@ -503,7 +620,7 @@ Bugbuster.Game.prototype = {
 				var life = this.lives.getFirstAlive();
 				life.kill();
 			}
-
+			this.orderPosition();
 			var tween = this.game.add.tween(this.satellite).to( { angle: 45, y: this.game.height + 80 }, 4000, "Linear", true);
 		}
 		if (this.script[current].shooters == 1) {
@@ -531,7 +648,7 @@ Bugbuster.Game.prototype = {
 		if (this.endText && this.endText.exists) {
 			return;
 		}
-		var msg = win ? 'You Win!!!' : 'Fuck.';
+		var msg = win ? 'WINRAR' : 'Fuck.';
 		this.endText = this.add.text( 
 			(this.game.width / 2) -.5, this.game.height / 2 - 60, msg,
 			{ font: '15px Monaco', fill: '#fff' }
@@ -552,7 +669,7 @@ Bugbuster.Game.prototype = {
 		this.returnText.destroy();
 		this.nextDialog = 0;
 		this.aggresive = 0;
-		this.state.start('MainMenu');
+		this.state.start('Game');
   }
 };
 
@@ -567,6 +684,7 @@ Bugbuster.Preloader.prototype = {
 		this.load.spritesheet('ship', 'img/ship.gif', 32, 28);
 		this.load.image('bullet', 'img/bullet.gif');
 		this.load.spritesheet('vasp', 'img/vasp.gif', 32, 21);
+		this.load.spritesheet('boss', 'img/boss.gif', 92, 56);
 		this.load.image('enemyBullet', 'img/vasp-bullet.gif');
 		this.load.spritesheet('bug', 'img/bug.gif', 26, 18);
 		this.load.spritesheet('kaboom', 'img/explode.gif', 32, 32);
