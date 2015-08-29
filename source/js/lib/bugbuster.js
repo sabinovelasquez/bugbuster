@@ -410,7 +410,7 @@ Bugbuster.Game.prototype = {
 		// 	this.enemyBulletPool.destroy();
 		// 	this.displayEnd(true);
 		// }
-		if (this.score >= 500 && this.bossPool.countDead() == 1) {
+		if (this.score >= 1500 && this.bossPool.countDead() == 1) {
 			this.spawnBoss();
 		}
 	},
