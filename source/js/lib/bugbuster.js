@@ -102,6 +102,8 @@ Bugbuster.Game.prototype = {
 		this.setupDialogs();
 		this.nextDialog = 0;
 		this.setupMusic();
+		this.setupAudio();
+
 		this.cursors = this.input.keyboard.createCursorKeys();
 	},
 	checkCollisions: function () {
@@ -151,6 +153,7 @@ Bugbuster.Game.prototype = {
 		
 		if(lastdead !== null){
 			lastdead.reset(lastdead.position.x, 10);
+			this.energySFX.play();
 		}
 		this.orderPosition();
 		powerUp.kill();
@@ -249,6 +252,7 @@ Bugbuster.Game.prototype = {
 			return;
 		}
 		this.nextShotAt = this.time.now + this.shotDelay;
+		this.playerFireSFX.play();
 
 		var bullet = this.bulletPool.getFirstExists(false);
 		bullet.reset(this.ship.x, this.ship.y - 20);
@@ -333,6 +337,7 @@ Bugbuster.Game.prototype = {
 			ship.kill();
 			this.displayEnd(false);
 		}
+		this.explodeShipSFX.play();
 		this.orderPosition();
 		this.hitted = 12;
 	},
@@ -376,6 +381,7 @@ Bugbuster.Game.prototype = {
 		enemy.damage(damage);
 		if (enemy.alive) {
 			enemy.play('hit');
+			this.hitSFX.play();
 		} else {
 			this.explode(enemy);
 			this.spawnPowerUp(enemy);
@@ -387,6 +393,7 @@ Bugbuster.Game.prototype = {
 				this.enemyBulletPool.destroy();
 				this.displayEnd(true);
 			}	
+			this.explodeSFX.play();
 		}
 			
 	},
@@ -430,6 +437,24 @@ Bugbuster.Game.prototype = {
 	},
 	setupMusic : function () {
 		this.music = game.sound.play('bgmusic');
+	},
+	setupAudio: function () {
+
+		this.playerFireSFX = this.add.audio('shoot');
+		this.hitSFX = this.add.audio('hit');
+		this.explodeSFX = this.add.audio('explode');
+		this.explodeShipSFX = this.add.audio('explode_ship');
+		this.energySFX = this.add.audio('energy');
+		this.shutdownSFX = this.add.audio('shutdown');
+		this.dialogSFX = this.add.audio('dialog');
+
+		this.playerFireSFX.volume = 0.06;
+		this.hitSFX.volume = 0.2;
+		this.explodeSFX.volume = 0.2;
+		this.energySFX.volume = 0.1;
+		this.explodeShipSFX.volume = 0.3;
+		this.shutdownSFX.volume = 0.3;
+		this.dialogSFX.volume = 0.1;
 	},
 	setupBackground: function () {
 		this.scrollBg = Bugbuster.STAR_SCROLL_SPEED;
@@ -587,7 +612,9 @@ Bugbuster.Game.prototype = {
 		this.dialogExpire = this.time.now + Bugbuster.DIALOG_TIME *  this.script[current].time;
 		this.dialogText.setText(this.script[current].text);
 		this.avatar.loadTexture( this.script[current].who );
-
+		if (this.script[current].who === 'tutor') {
+			this.dialogSFX.play();
+		}
 		if (this.script[current].nosignal != 1) {
 			this.avatar.animations.add('talk', [ 0, 1 ], 8, true);
 			this.avatar.play('talk');
@@ -615,7 +642,7 @@ Bugbuster.Game.prototype = {
 		}
 		if (this.script[current].shake == 1) {
 			this.hitted = 180;
-			
+			this.shutdownSFX.play();
 			for (i = 0; i < 16; i++ ) {
 				var life = this.lives.getFirstAlive();
 				life.kill();
@@ -694,7 +721,16 @@ Bugbuster.Preloader.prototype = {
 		this.load.image('life_up', 'img/pill_up.gif');
 		this.load.spritesheet('tutor', 'img/tutor.gif', 32, 32);
 		this.load.spritesheet('satellite', 'img/satellite.gif', 52, 30);
+		
 		this.load.audio('bgmusic', 'sound/pantera.mp3');
+
+		this.load.audio('shoot', 'sound/shoot.wav');
+		this.load.audio('energy', 'sound/energy.wav');
+		this.load.audio('explode', 'sound/explode.wav');
+		this.load.audio('explode_ship', 'sound/explode_ship.wav');
+		this.load.audio('shutdown', 'sound/shutdown.wav');
+		this.load.audio('hit', 'sound/hit.wav');
+		this.load.audio('dialog', 'sound/dialog.wav');
 	},
 	create: function () {
 		this.state.start('Game');
