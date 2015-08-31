@@ -754,7 +754,7 @@ Bugbuster.MainMenu.prototype = {
 	}
 };
 
-var game = new Phaser.Game($('#game').width(), $('#game').height(), Phaser.CANVAS, 'game');
+var game = new Phaser.Game(700, $('#game').height(), Phaser.CANVAS, 'game');
 
 game.state.add('Boot', Bugbuster.Boot);
 game.state.add('Preloader', Bugbuster.Preloader);
