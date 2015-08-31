@@ -488,8 +488,8 @@ Bugbuster.Game.prototype = {
 
 		var firstLifeIconX = this.game.width - 16 - (Bugbuster.PLAYER_EXTRA_LIVES * 8);
 		for (var i = 0; i < Bugbuster.PLAYER_EXTRA_LIVES; i++) {
-			var life = this.lives.create(firstLifeIconX - (8 * i), 10, 'energy');
-			var life_bg = this.lives_bg.create(firstLifeIconX - (8 * i), 10, 'energy_bg');
+			var life = this.lives.create(firstLifeIconX + (8 * i), 10, 'energy');
+			var life_bg = this.lives_bg.create(firstLifeIconX + (8 * i), 10, 'energy_bg');
 			// life.scale.setTo(0.5, 0.5);
 			// life.anchor.setTo(0.5, 0.5);
 		}
