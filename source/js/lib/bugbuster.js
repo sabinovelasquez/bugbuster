@@ -143,7 +143,7 @@ Bugbuster.Game.prototype = {
 		var firstPos = this.game.width - 16 - (Bugbuster.PLAYER_EXTRA_LIVES * 8);
 		var i = 0;
 		this.lives.forEachAlive( function (life) {
-			life.position.x = firstPos - (8 * i);
+			life.position.x = firstPos + (8 * i);
 			i ++;
 		} );
 	},
